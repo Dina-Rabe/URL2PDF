@@ -1,0 +1,8 @@
+Bellow python3 library are mandatory:
+
+requests
+os
+sys
+shutil
+BeautifulSoup
+reportlab
