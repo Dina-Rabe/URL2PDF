@@ -10,7 +10,7 @@ This project is a Python script that performs web scraping on a given URL, extra
 ## Installation
 
 1. Clone the repository:
-git clone https://github.com/your-username/your-repository.git
+git clone https://github.com/Dina-Rabe/URL2PDF.git
 
 
 2. Navigate to the project directory:
