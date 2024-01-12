@@ -7,25 +7,47 @@ from bs4 import BeautifulSoup
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas
+import logging
 
 TEMP_FOLDER_NAME = './.temp'
+error_log = logging.getLogger('ERROR_LOG')
+error_log.setLevel(logging.ERROR)
+error_log_file = logging.FileHandler('.log/error.log')
+error_log_file.setLevel(logging.ERROR)
+error_log_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+error_log_file.setFormatter(error_log_format)
+error_log.addHandler(error_log_file)
+
+info_log = logging.getLogger('INFO_LOG')
+info_log.setLevel(logging.INFO)
+info_log_file = logging.FileHandler('.log/app.log')
+info_log_file.setLevel(logging.INFO)
+info_log_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+info_log_file.setFormatter(info_log_format)
+info_log.addHandler(info_log_file)
 
 def get_given_url():
     response = ''
-    # Iterate over the command-line arguments
     for index, arg in enumerate(sys.argv):
         if arg == "--URL" and index + 1 < len(sys.argv):
             response = sys.argv[index + 1]
             break
+    if response == '':
+        raise ValueError("URL not provided.")
+    else:
+        info_log.info("URL provided")
     return response
 
 def get_given_output_file():
     response = ''
-    # Iterate over the command-line arguments
     for index, arg in enumerate(sys.argv):
         if arg == "--RESULT" and index + 1 < len(sys.argv):
             response = sys.argv[index + 1]
             break
+    if response == '':
+        raise ValueError("Output file not provided.")
+    else:
+        info_log.info("Output file provided")
     return response
 
 def open_index_html(url):
@@ -34,19 +56,22 @@ def open_index_html(url):
         if response.status_code == 200:
             if not os.path.exists(TEMP_FOLDER_NAME):
                 os.mkdir(TEMP_FOLDER_NAME)
-                print('here')
             with open(TEMP_FOLDER_NAME + '/index.html', 'w') as file:
                 file.write(response.text)
+            info_log.info("URL Content Downloaded!")
         else:
-            print("Failed to fetch the HTML content.")
+            error_log.error("Failed to fetch the HTML content.")
     except MissingSchema:
-        print("Invalid URL provided. Please include a valid scheme (e.g., 'http://' or 'https://').")
+        error_log.error("Invalid URL provided. Please include a valid scheme (e.g., 'http://' or 'https://').")
     except requests.exceptions.RequestException as e:
-        print("An error occurred:", str(e))
+        error_log.error("An error occurred:", str(e))
 
 def remove_temp_folder():
     if os.path.exists(TEMP_FOLDER_NAME):
         shutil.rmtree(TEMP_FOLDER_NAME)
+        info_log.info("TEMP FOLDER removed!")
+    else:
+        error_log.error("TEMP FOLDER Not present!")
 
 def extract_img_elements(html_file):
     response = []
@@ -65,56 +90,59 @@ def extract_img_elements(html_file):
             src_value = item.get("src")
             temp_dict = {'alt': alt_value, 'src': src_value}
             response.append(temp_dict)
+        if response == '':
+            raise ValueError("No image in this URL!")
+        else:
+            info_log.info("List of all image fetched successfully!")
     return response
 
 
 def write_pdf(data_list, output_file):
     c = canvas.Canvas(output_file, pagesize=A4)
-
-    page_height = A4[1]  # Height of the page in points
-    margin = inch  # Margin size in points
-    content_height = page_height - 2 * margin  # Height available for content
-
-    y = page_height - margin  # Initial y-coordinate
+    page_height = A4[1]
+    margin = inch
+    y = page_height - margin
 
     for data in data_list:
         alt = data.get("alt")
         src = data.get("src")
-
-        # Calculate the required space for the alt text and image
         line_height = c._leading
         image_height = 3 * inch
         required_height = line_height + image_height
-
-        # Check if there's enough space on the current page, otherwise create a new page
         if y - required_height < margin:
             c.showPage()
             y = page_height - margin
-
-        # Write alt value
-        c.drawString(inch, y - line_height, alt)
+        c.setFont("Helvetica-Bold", 24)
+        string_width = c.stringWidth(alt, "Helvetica-Bold", 24)
+        x = (A4[0] - string_width) / 2
+        c.drawString(x, y - line_height, alt)
         y -= line_height
-
-        # Download image from the src link
         response = requests.get(src)
-        image_file = f"{alt}.jpg"
+        image_file = f".temp/{alt}.jpg"
         with open(image_file, "wb") as file:
             file.write(response.content)
-
-        # Draw the image on the canvas
-        c.drawImage(image_file, inch, y - 2 * inch, width=3 * inch, height=3 * inch)
-        y -= image_height
-
-        y -= line_height  # Add some space between items
-
-    # Save the canvas as PDF
+        c.drawImage(image_file, x, y - line_height - image_height, width=3 * inch, height=3 * inch)
+        y -= required_height  
     c.save()
+    info_log.info("PDF created!")
+    
 
-# Example usage
-given_url = get_given_url()
-output_file = get_given_output_file()
-open_index_html(given_url)
-img_data = extract_img_elements(TEMP_FOLDER_NAME + '/index.html')
-print(len(img_data))
-write_pdf(img_data, output_file)
-#remove_temp_folder()
+def main():
+    try:
+        given_url = get_given_url()
+        output_file = get_given_output_file()        
+    except ValueError as error:
+        error_log.error(str(error))
+        sys.exit()
+    open_index_html(given_url)
+    try:
+        img_data = extract_img_elements(TEMP_FOLDER_NAME + '/index.html')
+    except ValueError as error:
+        error_log.error(str(error))
+        sys.exit()
+    write_pdf(img_data, output_file)
+    remove_temp_folder()
+    info_log.info(output_file + " generated successfully!")
+
+if __name__ == "__main__":
+    main()
