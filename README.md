@@ -1,4 +1,4 @@
-# Image to PDF Converter
+# URL to PDF Converter
 
 This Python script converts images from a given URL into a PDF document. It fetches the HTML content from the URL, extracts the image elements, and generates a PDF file containing the images along with their alt text.
 
