@@ -26,15 +26,13 @@ This Python script converts images from a given URL into a PDF document. It fetc
 
 Run the main.py file with the following command:
 
-   ```shell
-   python main.py --URL [URL] --RESULT [output_file]
+python main.py --URL [URL] --RESULT [output_file]
 
 Replace [URL] with the URL containing the images you want to convert, and [output_file] with the desired name of the output PDF file.
 
 For example:
 
-   ```shell
-   python main.py --URL https://example.com/images --RESULT output.pdf
+python main.py --URL https://example.com/images --RESULT output.pdf
 
 The script will download the HTML content from the given URL, extract the image elements, and generate a PDF file named output.pdf containing the images and their alt text.
 
