@@ -19,8 +19,8 @@ This Python script converts images from a given URL into a PDF document. It fetc
 
 2. Install the required libraries using pip:
 
-./requirements.sh
-```
+   ```shell
+   ./requirements.sh
 
 Usage
 
